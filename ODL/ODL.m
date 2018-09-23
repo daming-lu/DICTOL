@@ -31,12 +31,16 @@ function [D, X] = ODL(Y, k, lambda, opts, method)
 		opts.tol           = 1e-8;  
 		opts.verbose     = true;
 		
-	end 
+    end 
+
 	%%
 	opts = initOpts(opts);
 	%%
 	%% ========= initial D ==============================
 	D = PickDfromY(Y, [0, size(Y,2)], k);
+    if isfield(opts, 'holdsD')
+        D = opts.holdsD;
+    end
     X = zeros(size(D,2), size(Y,2));
     if opts.verbose 
         fprintf('cost: %f', ODL_cost(Y, D, X, lambda));
@@ -52,16 +56,25 @@ function [D, X] = ODL(Y, k, lambda, opts, method)
 		iter = iter + 1;
 		%% ========= sparse coding step ==============================
 		X = lasso_fista(Y, D, X, lambda, optsX);
+               
        	if opts.verbose 
-			costX = ODL_cost(Y, D, X, lambda);
-			fprintf('iter: %3d, costX = %5f\n', iter, costX)
+            if mod( iter, 100 ) == 0
+                costX = ODL_cost(Y, D, X, lambda);
+                fprintf('iter: %3d, costX = %5f\n', iter, costX)
+            end
 		end 
 		%% ========= dictionary update step ==============================
 		F = X*X'; E = Y*X';
-		D = ODL_updateD(D, E, F, optsD);
+%         if mod( iter, 20 ) == 0
+%             fprintf( 'iteration [%d]\n', iter);
+%         end
+        D = ODL_updateD(D, E, F, optsD);
+
 		if opts.verbose 
-			costD = ODL_cost(Y, D, X, lambda);
-			fprintf('iter: %3d, costD = %5f\n', iter, costD)
+            if mod( iter, 100 ) == 0
+                costD = ODL_cost(Y, D, X, lambda);
+                fprintf('iter: %3d, costD = %5f\n', iter, costD)
+            end
 		end 
 	end
 	%%
